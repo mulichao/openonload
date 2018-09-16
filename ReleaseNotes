@@ -1,3 +1,16 @@
+OpenOnload-201606-u1.1
+======================
+
+This is a minor update release to OpenOnload-201606-u1 containing a
+number of important bug fixes.
+
+Please see the ChangeLog for a list of bugs fixed.
+
+The Release Notes for OpenOnload-201606-u1, which includes a brief
+summary of new features and known limitations, are included below.
+For more details see the TCPDirect User Guide and Onload User Guide.
+
+
 OpenOnload-201606-u1
 ====================
 

@@ -1,5 +1,5 @@
 /*
-** Copyright 2005-2016  Solarflare Communications Inc.
+** Copyright 2005-2017  Solarflare Communications Inc.
 **                      7505 Irvine Center Drive, Irvine, CA 92618, USA
 ** Copyright 2002-2005  Level 5 Networks Inc.
 **
@@ -1797,7 +1797,7 @@ allocate_netif_resources(ci_resource_onload_alloc_t* alloc,
    */
   if( NI_OPTS(ni).pio ) {
     pio_bufs_ofs = sz;
-    sz += 2048 * oo_stack_intf_max(ni);
+    sz += 4096 * oo_stack_intf_max(ni);
   }
 #endif
 

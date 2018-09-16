@@ -1,3 +1,14 @@
+openonload-201606-u1.1
+----------------------
+
+task67184: Improved TCPDirect latency by ~50ns on dual-socket systems
+
+SF-117521-KI/bug66871: fix crash caused by failure to complete TCPDirect stack allocation
+SF-117522-KI/bug67797: fix socket and/or packet corruption with templated sends API on 8000-series NICs
+SF-117525-KI/bug67676: accelerate multicast traffic even when interface is brought up before Onload discovers it
+SF-117526-KI/bug67002: don't accelerate traffic for an IP address that has been removed from an interface
+
+
 openonload-201606-u1
 --------------------
 
