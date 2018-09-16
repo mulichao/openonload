@@ -1,5 +1,5 @@
 /*
-** Copyright 2005-2017  Solarflare Communications Inc.
+** Copyright 2005-2018  Solarflare Communications Inc.
 **                      7505 Irvine Center Drive, Irvine, CA 92618, USA
 ** Copyright 2002-2005  Level 5 Networks Inc.
 **
@@ -62,14 +62,7 @@
 #ifdef __x86_64__
 #  include <asm/processor.h>
 #  include <asm/msr.h>
-/* No asm/pda.h in >= 2.6.30.
- * Its content is partially in asm/percpu.h, but approach is different. */
-#  if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,30)
-#    define OLD_RSP_PROVIDED 1
-#    include <asm/pda.h>
-#  else
-#    define OLD_RSP_PROVIDED 0
-#    include <asm/percpu.h>
+#  include <asm/percpu.h>
 
 #    if LINUX_VERSION_CODE >= KERNEL_VERSION(4,2,0)
      /* We do not use current_top_of_stack() function directly, but we
@@ -85,13 +78,7 @@
        * We can't use percpu_read/percpu_write directly, since they access
        * the variable per_cpu__old_rsp, which we can't emulate (we just
        * know its address).
-       * percpu_* macros are different in 2.6.30&2.6.31 vs >=2.6.32.
        */
-#    if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,32)
-#      define percpu_read_from_p(pointer) percpu_from_op("mov", *pointer)
-#      define percpu_write_to_p(pointer, val) \
-         percpu_to_op("mov", *pointer, val)
-#    else
 #      define percpu_read_from_p(pointer) ({ \
          typeof(*pointer) __tmp_var__;                              \
          preempt_disable();                                         \
@@ -104,13 +91,11 @@
          (*SHIFT_PERCPU_PTR(pointer, my_cpu_offset)) = val;  \
          preempt_enable();                                    \
        })
-#    endif
 #    if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,34)
 #      define percpu_p(name) (&(per_cpu__ ## name))
 #    else
 #      define percpu_p(name) (&name)
 #    endif
-#  endif
 
 
 #ifdef CONFIG_COMPAT
@@ -131,20 +116,6 @@
 #  define ds(r) (r)->ds
 #  define es(r) (r)->es
 #  define ss(r) (r)->ss
-#  if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
-#    define ip(r) (r)->rip
-#    define di(r) (r)->rdi
-#    define si(r) (r)->rsi
-#    define sp(r) (r)->rsp
-#    define bp(r) (r)->rbp
-#    define ax(r) (r)->rax
-#    define bx(r) (r)->rbx
-#    define cx(r) (r)->rcx
-#    define dx(r) (r)->rdx
-#    define orig_ax(r) (r)->orig_rax
-#    define flags(r) (r)->eflags
-#    define sp0(t) (t)->rsp0
-#  else
 #    define ip(r) (r)->ip
 #    define di(r) (r)->di
 #    define si(r) (r)->si
@@ -156,29 +127,14 @@
 #    define dx(r) (r)->dx
 #    define orig_ax(r) (r)->orig_ax
 #    define flags(r) (r)->flags
+#  ifdef cpu_current_top_of_stack
+#    define sp0(t) (t)->sp
+#  else
 #    define sp0(t) (t)->sp0
 #  endif
 #endif
 
 #if defined(__i386__)
-#  if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
-#    define bx(r) (r)->ebx
-#    define cx(r) (r)->ecx
-#    define dx(r) (r)->edx
-#    define si(r) (r)->esi
-#    define di(r) (r)->edi
-#    define bp(r) (r)->ebp
-#    define ax(r) (r)->eax
-#    define ds(r) (r)->xds
-#    define es(r) (r)->xes
-#    define orig_ax(r) (r)->orig_eax
-#    define ip(r) (r)->eip
-#    define cs(r) (r)->xcs
-#    define flags(r) (r)->eflags
-#    define sp(r) (r)->esp
-#    define ss(r) (r)->xss
-#    define sp0(t) (t)->esp0
-#  else
 #    define bx(r) (r)->bx
 #    define cx(r) (r)->cx
 #    define dx(r) (r)->dx
@@ -195,26 +151,8 @@
 #    define sp(r) (r)->sp
 #    define ss(r) (r)->ss
 #    define sp0(t) (t)->sp0
-#  endif
 #endif
 
-
-/* On RHEL5 kernels (2.6.18, x86_64 only) the sys-call
- * table is part of a special memory mapping used for the kernel text
- * section.  This mapping has been observed to start at 2MB above the
- * base of phyiscal memory.
- *
- * No other kernel uses such a hack. (Really?)
- * Possibly, the reason is in linux-2.6-x86-relocatable.patch
- * Tested: a lot of Debian kernels, RHEL<=4 kernels.
- */
-#ifdef __x86_64__
-# if LINUX_VERSION_CODE == KERNEL_VERSION(2, 6, 18)
-#  define NEED_SYSCALL_MAPPING_HACK()  ((__pa(loc) >> PAGE_SHIFT) >= end_pfn)
-# else
-#  define NEED_SYSCALL_MAPPING_HACK()  0
-# endif
-#endif
 
 
 /*--------------------------------------------------------------------
@@ -332,6 +270,23 @@ static void **find_syscall_table(void)
 
 #elif defined(__x86_64__)
 
+static void* oo_entry_SYSCALL_64(void)
+{
+  static void* res = NULL;
+  unsigned long result = 0;
+
+  if( res != NULL )
+    return res;
+  res = efrm_find_ksym("entry_SYSCALL_64");
+  if( res != NULL )
+    return res;
+
+  /* linux<4.2 does not define entry_SYSCALL_64().  It uses system_call(). */
+  rdmsrl(MSR_LSTAR, result);
+  res = (void*)result;
+  return res;
+}
+
 /* For x86_64, we can find the syscall entry point directly from the LSTAR
  * MSR.  The opcode we need to locate is "call *table(,%rax,8)" which is
  * 0xff,0x14,0xc5,<table> (but note that <table> here is only 4 bytes, not 8).
@@ -341,9 +296,11 @@ static void **find_syscall_table(void)
   unsigned long result = 0;
   unsigned char *p, *pend;
 
-  rdmsrl(MSR_LSTAR, result);
-  TRAMP_DEBUG("msr_lstar=%lx", result);
-  p = (unsigned char *)result;
+  p = oo_entry_SYSCALL_64();
+  if( p == NULL )
+    return NULL;
+  result = (unsigned long)p;
+  TRAMP_DEBUG("entry_SYSCALL_64=%p", p);
   pend = p + 1024 - 7;
   while (p < pend) {
     if ((p[0] == 0xff) && (p[1] == 0x14) && (p[2] == 0xc5)) {
@@ -647,9 +604,8 @@ asmlinkage int efab_linux_sys_sigaction32(int signum,
 
 #endif
 
-#if defined(__x86_64__) && !OLD_RSP_PROVIDED
-/* For old kernels, oldrsp per-cpu variable is exported and accessible by
- * module.  For newer kernel, we have to calculate it. */
+#if defined(__x86_64__)
+/* Find the storage of the old (UL) stack pointer. */
 ci_inline unsigned long *get_oldrsp_addr(void)
 {
   static unsigned long *oldrsp_addr = NULL;
@@ -658,16 +614,16 @@ ci_inline unsigned long *get_oldrsp_addr(void)
 
   /* 
    * Dirty hack to find location of old_rsp, which is not exported.
-   * 1. get system_call from MSR_LSTAR (again).
+   * 1. get entry_SYSCALL_64
    * It looks following:
    *   swapgs
    *        0f 01 f8
    *   <some CFI stuff (?)>
    *   movq   %rsp,PER_CPU_VAR(old_rsp)
-   *        65 48 89 24 25 XX XX
-   *   <some zeroes>
+   *        65 48 89 24 25 XX XX XX XX
+   *   <some zeroes?>
    *   movq   PER_CPU_VAR(kernel_stack),%rsp
-   *        65 48 8b 24 25 YY YY
+   *        65 48 8b 24 25 YY YY YY YY
    * where kernel_stack is exported, so it can be checked.
    * 2. look through the code and find/check we have what we expect.
    */
@@ -680,14 +636,18 @@ ci_inline unsigned long *get_oldrsp_addr(void)
 #ifdef HAS_CURRENT_TOP_OF_STACK
     /* current_top_of_stack() reads cpu_tss.x86_tss.sp0, and it is the
      * pointer we need. */
+#ifdef cpu_current_top_of_stack
+    /* KPTI rework (in linux-4.14) results in this */
+    unsigned long kernel_stack_p = (unsigned long)percpu_p(cpu_current_top_of_stack);
+#else
     unsigned long kernel_stack_p = (unsigned long)percpu_p(cpu_tss.x86_tss.sp0);
+#endif
 #else
     unsigned long kernel_stack_p = (unsigned long)percpu_p(kernel_stack);
 #endif
     unsigned char *p_end;
 
-    rdmsrl(MSR_LSTAR, result);
-    p = (unsigned char *)result;
+    p = oo_entry_SYSCALL_64();
 #ifndef NDEBUG
     ptr = p;
 #define OOPS(msg) { \
@@ -707,7 +667,7 @@ ci_inline unsigned long *get_oldrsp_addr(void)
            "can't trampoline.");
     }
     p += 3;
-    p_end = p + 32;
+    p_end = p + 256; /* RHEL6 needs >=128 */
     while (p[0] != 0x65 || p[1] != 0x48 || p[2] != 0x89 ||
            p[3] != 0x24 || p[4] != 0x25) {
       p++;
@@ -717,16 +677,18 @@ ci_inline unsigned long *get_oldrsp_addr(void)
       }
     }
     p += 5;
-    result = p[0] + (p[1] << 8);
-    p +=2;
+    result = p[0] + (p[1] << 8) + (p[2] << 16);
+    p +=3;
     while (*p == 0)
       p++;
     if (p[0] != 0x65 || p[1] != 0x48 || p[2] != 0x8b ||
         p[3] != 0x24 || p[4] != 0x25 ||
         p[5] != (kernel_stack_p & 0xff) ||
-        p[6] != ((kernel_stack_p >> 8) & 0xff)) {
-      OOPS("Unexpected code in system_call(), can't trampoline.\n"
-           "Expecting movq PER_CPU_VAR(kernel_stack),%%rsp");
+        p[6] != ((kernel_stack_p >> 8) & 0xff) ||
+        p[7] != ((kernel_stack_p >> 16) & 0xff)) {
+      ci_log("Looking up for movq PER_CPU_VAR(kernel_stack=%lx),%%rsp",
+             kernel_stack_p);
+      OOPS("Unexpected code in system_call(), can't trampoline.");
     }
     TRAMP_DEBUG("&per_cpu__old_rsp=%08lx", result);
 
@@ -1116,7 +1078,8 @@ efab_linux_trampoline_handler_close64(int fd, unsigned long* stack_start)
   TRAMP_DEBUG("  rsp %016lx XX", sp(regs));
   TRAMP_DEBUG("  ss  %016lx XX",regs->ss);
   TRAMP_DEBUG("trampoline_exclude %016lx", (unsigned long) trampoline_exclude);
-  TRAMP_DEBUG("thread_info->flags %08x", current_thread_info()->flags);
+  TRAMP_DEBUG("thread_info->flags %016lx",
+              (unsigned long)current_thread_info()->flags);
 
   if (ip(regs) == trampoline_exclude) {
     TRAMP_DEBUG("Ignoring call from excluded address");
@@ -1138,8 +1101,8 @@ efab_linux_trampoline_handler_close64(int fd, unsigned long* stack_start)
    */
   {
     unsigned long *orig_user_sp;
-#if OLD_RSP_PROVIDED
-    orig_user_sp = (unsigned long *)read_pda(oldrsp);
+#ifdef cpu_current_top_of_stack
+    orig_user_sp = (void*)sp(regs);
 #else
     orig_user_sp = (unsigned long *)percpu_read_from_p(get_oldrsp_addr());
 #endif
@@ -1169,11 +1132,7 @@ efab_linux_trampoline_handler_close64(int fd, unsigned long* stack_start)
       return tramp_close_passthrough(fd);
 
     /* Write the updated rsp */
-#if OLD_RSP_PROVIDED
-    write_pda(oldrsp, (unsigned long)user_sp);
-#else
     percpu_write_to_p(get_oldrsp_addr(), (unsigned long)user_sp);
-#endif
     TRAMP_DEBUG("wrote user_sp=%p", user_sp);
 
     /* On some slow paths through the syscall code (e.g. when ptracing) the
@@ -1442,23 +1401,12 @@ static void
 patch_syscall_table (void **table, unsigned entry, void *func,
                      void* prev_func)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,13)
   void *mapped;
   void **loc = table + entry;
   ci_uintptr_t offs = ((ci_uintptr_t)loc) & (PAGE_SIZE-1);
   struct page *pg;
 
-#ifdef __x86_64__
-  if( NEED_SYSCALL_MAPPING_HACK() ) {
-    unsigned pfn = ((unsigned long) loc - __START_KERNEL_map) >> PAGE_SHIFT;
-    pfn += 0x200;  /* magic! adjust by 2MB */
-    TRAMP_DEBUG ("%s: pfn is %u", __FUNCTION__, pfn);
-    pg = pfn_to_page(pfn);
-    TRAMP_DEBUG ("%s: pg for pfn %u is %p", __FUNCTION__, pfn, pg);
-  }
-  else
-#endif
-    pg = virt_to_page (loc);
+  pg = virt_to_page (loc);
 
   TRAMP_DEBUG ("calling vmap (%p, 1, VM_MAP, PAGE_KERNEL)", pg);
   mapped = vmap (&pg, 1, VM_MAP, PAGE_KERNEL);
@@ -1480,13 +1428,6 @@ patch_syscall_table (void **table, unsigned entry, void *func,
   TRAMP_DEBUG ("%s: unmapping", __FUNCTION__);
   vunmap (mapped);
   TRAMP_DEBUG ("%s: all done", __FUNCTION__);
-
-#else
-  /* vmap not available on earlier kernels, but they don't protect the syscall
-   * table against writing, so "just do it" (tm)
-   */
-  table [entry] = func;
-#endif
 }
 
 
@@ -1535,7 +1476,7 @@ int efab_linux_trampoline_ctor(int no_sct)
     }
   } else {
     /* syscall_table wasn't found, so we may have no way to sys_close()... */
-    TRAMP_DEBUG("warning: syscall table not found - can't read sys_close");
+    OO_DEBUG_ERR(ci_log("ERROR: syscall table not found"));
     return 0;
   }
 
@@ -1593,9 +1534,6 @@ int efab_linux_trampoline_ctor(int no_sct)
 }
 
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,12)
-#define synchronize_sched synchronize_kernel
-#endif
 int
 efab_linux_trampoline_dtor (int no_sct) {
   if (syscall_table != NULL && !no_sct) {

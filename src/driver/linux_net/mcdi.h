@@ -1,5 +1,5 @@
 /*
-** Copyright 2005-2017  Solarflare Communications Inc.
+** Copyright 2005-2018  Solarflare Communications Inc.
 **                      7505 Irvine Center Drive, Irvine, CA 92618, USA
 ** Copyright 2002-2005  Level 5 Networks Inc.
 **
@@ -110,6 +110,7 @@ struct efx_mcdi_cmd {
 	unsigned long started;
 	unsigned long cookie;
 	efx_mcdi_async_starter *starter;
+	efx_mcdi_async_completer *atomic_completer;
 	efx_mcdi_async_completer *completer;
 	unsigned int handle;
 	unsigned int cmd;
@@ -139,6 +140,7 @@ struct efx_mcdi_iface {
 	spinlock_t iface_lock;
 	struct list_head cmd_list;
 	struct workqueue_struct *workqueue;
+	unsigned int outstanding_cleanups;
 	wait_queue_head_t cmd_complete_wq;
 	struct efx_mcdi_cmd *db_held_by;
 	struct efx_mcdi_cmd *seq_held_by[16];
@@ -216,6 +218,7 @@ int efx_mcdi_rpc_async_quiet(struct efx_nic *efx, unsigned int cmd,
 int efx_mcdi_rpc_async_ext(struct efx_nic *efx, unsigned int cmd,
 			   const efx_dword_t *inbuf, size_t inlen,
 			   efx_mcdi_async_starter *starter,
+			   efx_mcdi_async_completer *atomic_completer,
 			   efx_mcdi_async_completer *completer,
 			   unsigned long cookie, bool quiet,
 			   unsigned int *handle);

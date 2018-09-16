@@ -1,3 +1,13 @@
+OpenOnload-201710-u1
+====================
+
+This is a minor update release that adds support for recent kernels
+(up to v4.14.11) to allow use of Onload with kernels that have KPTI.
+
+It also supports enterprise distribution kernels for RHEL7 and SLES12
+that have backported KPTI.
+
+
 OpenOnload-201710
 =================
 

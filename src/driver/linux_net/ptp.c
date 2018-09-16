@@ -1,5 +1,5 @@
 /*
-** Copyright 2005-2017  Solarflare Communications Inc.
+** Copyright 2005-2018  Solarflare Communications Inc.
 **                      7505 Irvine Center Drive, Irvine, CA 92618, USA
 ** Copyright 2002-2005  Level 5 Networks Inc.
 **
@@ -1557,6 +1557,7 @@ static int efx_ptp_synchronize(struct efx_nic *efx, unsigned int num_readings)
 	unsigned int loops = 0;
 	int *start = ptp->start.addr;
 	static const unsigned int PTP_SYNC_TIMEOUT = 10 * HZ;
+	static const unsigned int PTP_START_TIMEOUT = PTP_SYNC_TIMEOUT * 4;
 	unsigned long started;
 
 	MCDI_SET_DWORD(inbuf, PTP_IN_OP, MC_CMD_PTP_OP_SYNCHRONIZE);
@@ -1578,13 +1579,14 @@ static int efx_ptp_synchronize(struct efx_nic *efx, unsigned int num_readings)
 				    inbuf, MC_CMD_PTP_IN_SYNCHRONIZE_LEN,
 				    efx_ptp_cmd_started,
 				    efx_ptp_cmd_complete,
+				    NULL,
 				    (unsigned long)&mcdi_data,
 				    false, &mcdi_handle);
 
 	/* Wait for MCDI command to be sent */
 	if (rc == 0)
 		if (!wait_event_timeout(mcdi_data.wq, mcdi_data.started,
-					PTP_SYNC_TIMEOUT) &&
+					PTP_START_TIMEOUT) &&
 		    !mcdi_data.started) {
 			netif_err(efx, drv, efx->net_dev,
 				  "MC command 0x%x timed out (ptp) after %u ms\n",

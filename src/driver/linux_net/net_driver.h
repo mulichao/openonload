@@ -1,5 +1,5 @@
 /*
-** Copyright 2005-2017  Solarflare Communications Inc.
+** Copyright 2005-2018  Solarflare Communications Inc.
 **                      7505 Irvine Center Drive, Irvine, CA 92618, USA
 ** Copyright 2002-2005  Level 5 Networks Inc.
 **
@@ -86,7 +86,7 @@
  *
  **************************************************************************/
 
-#define EFX_DRIVER_VERSION	"4.12.1.1016"
+#define EFX_DRIVER_VERSION	"4.12.2.1006"
 
 #ifdef DEBUG
 #define EFX_WARN_ON_ONCE_PARANOID(x) WARN_ON_ONCE(x)

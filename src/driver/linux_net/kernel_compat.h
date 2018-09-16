@@ -1,5 +1,5 @@
 /*
-** Copyright 2005-2017  Solarflare Communications Inc.
+** Copyright 2005-2018  Solarflare Communications Inc.
 **                      7505 Irvine Center Drive, Irvine, CA 92618, USA
 ** Copyright 2002-2005  Level 5 Networks Inc.
 **
@@ -2147,6 +2147,7 @@ static inline unsigned long __attribute_const__ rounddown_pow_of_two(unsigned lo
 	};
 #endif
 
+#ifndef EFX_HAVE_TIMESPEC64
 #ifdef EFX_NEED_TIMESPEC_ADD_NS
 	static inline void timespec_add_ns(struct timespec *a, u64 ns)
 	{
@@ -2196,7 +2197,7 @@ static inline unsigned long __attribute_const__ rounddown_pow_of_two(unsigned lo
 	#define timespec_sub efx_timespec_sub
 #endif
 
-#ifndef EFX_HAVE_TIMESPEC64
+
 	#define timespec64		timespec
 	#define timespec64_compare	timespec_compare
 	#define timespec64_add_ns	timespec_add_ns
@@ -2207,7 +2208,7 @@ static inline unsigned long __attribute_const__ rounddown_pow_of_two(unsigned lo
 	#define timespec64_to_ktime	timespec_to_ktime
 	#define timespec_to_timespec64(t) (t)
 	#define timespec64_to_timespec(t) (t)
-#endif
+#endif // EFX_HAVE_TIMESPEC64
 
 #ifdef EFX_HAVE_OLD_SKB_LINEARIZE
 	static inline int efx_skb_linearize(struct sk_buff *skb)
@@ -2795,6 +2796,13 @@ struct EFX_HWMON_DEVICE_REGISTER_TYPE *hwmon_device_register_with_info(
 #if defined(EFX_NEED_HWMON_T_ALARM)
 #define HWMON_T_ALARM	BIT(hwmon_temp_alarm)
 #endif
+#endif
+
+#if defined(EFX_HAVE_XDP_OLD)
+/* ndo_xdp and netdev_xdp were renamed in 4.15 */
+#define ndo_bpf	ndo_xdp
+#define netdev_bpf netdev_xdp
+#define EFX_HAVE_XDP
 #endif
 
 #if defined(EFX_HAVE_XDP) && !defined(EFX_HAVE_XDP_TRACE)

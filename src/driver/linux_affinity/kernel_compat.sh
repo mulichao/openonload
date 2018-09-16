@@ -104,10 +104,6 @@ EFRM_HAVE_CLOEXEC_TEST	symbol	fd_is_open	include/linux/fdtable.h
 EFRM_SOCK_SENDMSG_NEEDS_LEN	symtype	sock_sendmsg	include/linux/net.h int(struct socket *, struct msghdr *, size_t)
 EFRM_SOCK_RECVMSG_NEEDS_BYTES	symtype sock_recvmsg	include/linux/net.h int(struct socket *, struct msghdr *, size_t, int)
 
-EFRM_HAVE___VFS_READ_EXPORTED	export	__vfs_read	include/linux/fs.h
-
-EFRM_HAVE_FOP_READV	memtype	struct_file_operations	readv	include/linux/fs.h ssize_t (*) (struct file *, const struct iovec *, unsigned long, loff_t *)
-EFRM_HAVE_FOP_AIO_READ	memtype	struct_file_operations	aio_read	include/linux/fs.h ssize_t (*) (struct kiocb *, const struct iovec *, unsigned long, loff_t)
 EFRM_HAVE_FOP_READ_ITER	memtype	struct_file_operations	read_iter	include/linux/fs.h ssize_t (*) (struct kiocb *, struct iov_iter *)
 
 EFRM_SOCK_CREATE_KERN_HAS_NET	symtype	sock_create_kern	include/linux/net.h int(struct net *, int, int, int, struct socket **)
