@@ -88,8 +88,11 @@ ci_ip_pkt_fmt* __ci_netif_pkt(ci_netif* ni, unsigned id)
 
  out:
   pthread_mutex_unlock(&citp_pkt_map_lock);
-  if( CI_UNLIKELY(pkt == NULL) )
-    ci_log("Failed to map packets!  Crashing...");
+  if( CI_UNLIKELY(pkt == NULL) ) {
+    ci_log("Failed to map packets!");
+    ci_netif_unlock(ni);
+    ci_fail(("Crashing..."));
+  }
   return pkt;
 }
 

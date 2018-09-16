@@ -84,12 +84,6 @@ static int efx_ioctl_do_mcdi_old(struct efx_nic *efx, union efx_ioctl_data *data
 		return -EINVAL;
 	}
 
-	if (efx_nic_rev(efx) < EFX_REV_SIENA_A0) {
-		netif_err(efx, drv, efx->net_dev,
-			  "error: NIC has no MC for MCDI\n");
-		return -ENOTSUPP;
-	}
-
 	inbuf_len = ALIGN(req->len, 4);
 	inbuf = kmalloc(inbuf_len, GFP_KERNEL);
 	if (!inbuf)
@@ -568,11 +562,8 @@ efx_ioctl_get_device_ids(struct efx_nic *efx, union efx_ioctl_data *data)
 	/* ids->perm_addr isn't __aligned(2), so we can't use ether_addr_copy
 	 * (and we can't change it because it's an ioctl argument)
 	 */
-#if !defined(EFX_USE_KCOMPAT) || defined(EFX_USE_NETDEV_PERM_ADDR)
 	ether_addr_copy(ids->perm_addr, efx->net_dev->perm_addr);
-#else
-	ether_addr_copy(ids->perm_addr, efx->perm_addr);
-#endif
+
 	return 0;
 }
 

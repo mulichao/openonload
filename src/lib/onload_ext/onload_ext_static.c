@@ -150,6 +150,13 @@ wrap(int, onload_stack_opt_set_int, (const char* opt, int64_t val),
 wrap(int, onload_stack_opt_get_int, (const char* opt, int64_t* val),
      (opt, val), -ENOSYS)
 
+wrap(int, onload_stack_opt_set_str, (const char* opt, const char* val),
+     (opt, val), 0)
+
+wrap(int, onload_stack_opt_get_str,
+     (const char* opt, char* val_out, size_t* val_out_len),
+     (opt, val_out, val_out_len), -ENOSYS)
+
 wrap(int, onload_stack_opt_reset, (void),
      (), 0)
 
@@ -233,3 +240,8 @@ wrap_with_errno(int, onload_get_tcp_info,
 wrap_with_fn(int, onload_socket_nonaccel,
              (int domain, int type, int protocol),
              (domain, type, protocol), socket)
+
+wrap_with_fn(int, onload_socket_unicast_nonaccel,
+             (int domain, int type, int protocol),
+             (domain, type, protocol), socket)
+

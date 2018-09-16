@@ -245,7 +245,7 @@ void oo_timesync_update(struct oo_timesync *oo_ts)
   int use_this_sample = 1;
 
   if( time_after(jiffies, (unsigned long)oo_ts->update_jiffies) ) {
-    spin_lock(&timesync_lock);
+    spin_lock_bh(&timesync_lock);
     /* Re-check incase it was updated while we waited for the lock */
     if( time_after(jiffies, (unsigned long)oo_ts->update_jiffies) ) {
       ci_frc64(&frc);
@@ -343,7 +343,7 @@ void oo_timesync_update(struct oo_timesync *oo_ts)
       if( use_this_sample )
         oo_timesync_stabilize_cpu_khz(oo_ts);
     }
-    spin_unlock(&timesync_lock);
+    spin_unlock_bh(&timesync_lock);
   }
 }
 #endif

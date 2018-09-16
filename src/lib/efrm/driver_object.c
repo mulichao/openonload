@@ -137,6 +137,7 @@ int efrm_nic_ctor(struct efrm_nic *efrm_nic, int ifindex,
 		goto fail1;
 	}
 
+        efrm_nic->max_vis = max_vis;
 	efrm_nic->vis = vmalloc(max_vis * sizeof(efrm_nic->vis[0]));
 	if (efrm_nic->vis == NULL) {
 		EFRM_ERR("%s: Out of memory (max_vis=%u)",

@@ -17,7 +17,7 @@
 #include <linux/kernel.h>
 #include <linux/err.h>
 #include <linux/vmalloc.h>
-#include <asm/uaccess.h>
+#include <linux/uaccess.h>
 
 
 struct dump_to_buf {

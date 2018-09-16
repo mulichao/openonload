@@ -602,7 +602,7 @@ static int citp_pipe_fcntl(citp_fdinfo* fdinfo, int cmd, long arg)
      */
     rc = ci_pipe_set_size(epi->ni, p, arg);
     if( rc < 0 ) {
-        errno = EINVAL;
+        errno = -rc;
         rc = CI_SOCKET_ERROR;
         break;
     }
@@ -611,7 +611,7 @@ static int citp_pipe_fcntl(citp_fdinfo* fdinfo, int cmd, long arg)
 #endif
 #ifdef F_GETPIPE_SZ
   case F_GETPIPE_SZ:
-    rc = (p->bufs_max - 1) * OO_PIPE_BUF_MAX_SIZE;
+    rc = p->bufs_max * OO_PIPE_BUF_MAX_SIZE;
     break;
 #endif
   default:

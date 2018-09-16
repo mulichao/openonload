@@ -513,6 +513,11 @@ struct efhw_nic {
 	uint8_t tx_alts_vfifos;
 	/* Number of common pool buffers for TX alternatives*/
 	uint16_t tx_alts_cp_bufs;
+
+        /* RX datapath firmware variant */
+        uint16_t rx_variant;
+        /* TX datapath firmware variant */
+        uint16_t tx_variant;
 };
 
 

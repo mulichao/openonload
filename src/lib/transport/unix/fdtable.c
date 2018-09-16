@@ -49,8 +49,6 @@
 
 #define DEBUGPREINIT(x)
 
-# define citp_fdinfo_free	CI_FREE_OBJ
-
 
 citp_fdtable_globals	citp_fdtable;
 
@@ -760,7 +758,7 @@ citp_fdtable_lookup_fast(citp_lib_context_t* ctx, unsigned fd)
 **       caller should ensure the reference is dropped when no
 **       longer needed by calling citp_fdinfo_release_ref().
 */
-citp_fdinfo* citp_fdtable_lookup_noprobe(unsigned fd)
+citp_fdinfo* citp_fdtable_lookup_noprobe(unsigned fd, int fdt_locked)
 {
   /* Need to be initialised before we can try and grab the lock at the
   ** moment.  TODO: make this more efficient by using a trylock to grab the
@@ -789,14 +787,14 @@ citp_fdinfo* citp_fdtable_lookup_noprobe(unsigned fd)
 	citp_fdinfo* fdi = fdip_to_fdi(fdip);
 	citp_fdinfo_ref(fdi);
 	/* Swap the busy marker out again. */
-	citp_fdtable_busy_clear(fd, fdip, 0);
+	citp_fdtable_busy_clear(fd, fdip, fdt_locked);
         return fdi;
       }
       goto again;
     }
     /* Not normal! */
     else if( fdip_is_busy(fdip) ) {
-      citp_fdtable_busy_wait(fd, 0);
+      citp_fdtable_busy_wait(fd, fdt_locked);
       goto again;
     }
 
@@ -886,11 +884,14 @@ static void citp_fdinfo_do_handover(citp_fdinfo* fdi, int fdt_locked)
   citp_fdtable_busy_clear(fdi->fd, fdip_passthru, fdt_locked);
 exit:
   citp_fdinfo_get_ops(fdi)->dtor(fdi, fdt_locked);
-  if( epoll_fdi != NULL && epoll_fdi->protocol->type == CITP_EPOLL_FD )
+  if( epoll_fdi != NULL && epoll_fdi->protocol->type == CITP_EPOLL_FD ) {
     citp_epoll_on_handover(epoll_fdi, fdi, fdt_locked);
-  if( epoll_fdi != NULL )
-    citp_fdinfo_release_ref(epoll_fdi, fdt_locked);
-  citp_fdinfo_free(fdi);
+  }
+  else {
+    if( epoll_fdi != NULL )
+      citp_fdinfo_release_ref(epoll_fdi, fdt_locked);
+    citp_fdinfo_free(fdi);
+  }
 }
 
 
@@ -1459,6 +1460,7 @@ int citp_ep_dup3(unsigned fromfd, unsigned tofd, int flags)
 {
   volatile citp_fdinfo_p* p_tofdip;
   citp_fdinfo_p tofdip;
+  citp_fdinfo_p fromfdip;
   unsigned max;
 
   Log_V(log("%s(%d, %d)", __FUNCTION__, fromfd, tofd));
@@ -1478,6 +1480,24 @@ int citp_ep_dup3(unsigned fromfd, unsigned tofd, int flags)
     ci_assert(max < citp_fdtable.size);
     CITP_FDTABLE_LOCK();
     __citp_fdtable_extend(max);
+    CITP_FDTABLE_UNLOCK();
+  }
+
+  /* If we don't know what fromfd is then we'll need it to be probed later
+   * in the dup process.  By doing it now we ensure that any side affects
+   * happen before we end up taking more locks and changing the state.  In
+   * particular this can result in us attaching to a stack, and trying to
+   * insert the new stack fd into the fdtable.  This causes problems if the
+   * fd we're dup'ing onto is the same as the fd selected for the stack as
+   * we'll end up waiting for the target fd to stop being busy, and it won't.
+   */
+  fromfdip = citp_fdtable.table[fromfd].fdip;
+  if( fdip_is_unknown(fromfdip) ) {
+    citp_fdinfo* fromfdi;
+    CITP_FDTABLE_LOCK();
+    fromfdi = citp_fdtable_probe_locked(fromfd, CI_FALSE, CI_FALSE);
+    if( fromfdi )
+      citp_fdinfo_release_ref(fromfdi, CI_TRUE);
     CITP_FDTABLE_UNLOCK();
   }
 
@@ -1706,7 +1726,8 @@ int citp_ep_close(unsigned fd)
 
 /* Re-probe fdinfo after endpoint was moved to another stack.
  * The function assumes that fdinfo was obtained via citp_fdtable_lookup()
- * or from citp_fdtable_lookup_fast(). */
+ * or from citp_fdtable_lookup_fast().  The _fast() variant is used by
+ * read/write/recvmsg/sendto/... socket call interceptors. */
 citp_fdinfo* citp_reprobe_moved(citp_fdinfo* fdinfo, int from_fast_lookup,
                                 int fdip_is_already_busy)
 {
@@ -1751,11 +1772,13 @@ citp_fdinfo* citp_reprobe_moved(citp_fdinfo* fdinfo, int from_fast_lookup,
 
   if( fdinfo->epoll_fd >= 0 ) {
     citp_fdinfo* epoll_fdi = citp_epoll_fdi_from_member(fdinfo, 1);
-    if( epoll_fdi->protocol->type == CITP_EPOLL_FD )
+    if( epoll_fdi->protocol->type == CITP_EPOLL_FD ) {
       citp_epoll_on_move(epoll_fdi, fdinfo, new_fdinfo, 1);
-    else
+    }
+    else {
       citp_epollb_on_handover(epoll_fdi, fdinfo);
-    citp_fdinfo_release_ref(epoll_fdi, 1);
+      citp_fdinfo_release_ref(epoll_fdi, 1);
+    }
   }
 
   /* Drop refcount from fdtable */

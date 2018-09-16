@@ -110,6 +110,7 @@ struct efrm_resource_manager {
 #endif
 	int rm_resources;
 	int rm_resources_hiwat;
+        int rm_resources_total; /* or -1 for no specified limit */
 	struct list_head rm_resources_list;
 	/**
 	 * Destructor for the resource manager. Other resource managers
@@ -142,5 +143,9 @@ extern void efrm_resource_ref(struct efrm_resource *rs);
 extern void efrm_resource_release(struct efrm_resource *);
 extern int  __efrm_resource_release(struct efrm_resource *);
 
+extern void efrm_resource_manager_add_total(int rs_type,
+                                            int n_avail);
+extern void efrm_resource_manager_del_total(int rs_type,
+                                            int n_avail);
 
 #endif /* __CI_EFRM_RESOURCE_H__ */

@@ -109,7 +109,7 @@ void rwlock_clear_readers(oo_rwlock *l)
   struct oo_rwlock_perthread *p;
   ci_uint32 flags;
 
-  /* The loop modified the list, but as long as we hold p->mutex we can
+  /* The loop modifies the list, but as long as we hold p->mutex we can
    * safely use p->next link. */
   for( p = l->thread_head.next; p != &l->thread_head; p = p->next ) {
     ci_assert(p->flags & OO_RWLOCK_KEY_IS_READER );
@@ -141,6 +141,7 @@ void rwlock_writers_dec(oo_rwlock *l, int locked)
 
   do {
     tmp = l->writers;
+    ci_assert(tmp);
     if( tmp == 1 ) {
       if( ! locked )
         CI_TRY( pthread_mutex_lock(&l->mutex) );

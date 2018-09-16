@@ -30,6 +30,7 @@ struct vi_allocate_info {
   const char *name;
   unsigned ef_vi_flags;
   unsigned efhw_flags;
+  unsigned efhw_flags_extra;
   unsigned oo_vi_flags;
   int evq_capacity;
   int txq_capacity;

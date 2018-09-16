@@ -52,7 +52,7 @@ oo_dshm_fini(void);
 extern int
 oo_dshm_free_handle_list(ci_dllist*);
 
-#ifdef OO_MMAP_HAVE_EXTENDED_MAP_TYPES
+#ifdef OO_MMAP_TYPE_DSHM
 extern int
 oo_dshm_mmap_impl(struct vm_area_struct*);
 #endif

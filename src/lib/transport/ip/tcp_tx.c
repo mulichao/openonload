@@ -30,9 +30,6 @@
 #include <onload/sleep.h>
 #include "ip_tx.h"
 #include <ci/internal/pio_buddy.h>
-#if defined(__ci_driver__) && defined(__linux__)
-# include <cplane/exported.h>
-#endif
 #include "tcp_tx.h"
 
 
@@ -241,7 +238,8 @@ static void ci_ip_send_tcp_list(ci_netif* ni, ci_tcp_state* ts,
   ci_assert(ci_netif_is_locked(ni));
   ci_assert(~ts->s.pkt.flags & CI_IP_CACHE_IS_LOCALROUTE);
 
-  if(CI_LIKELY( cicp_ip_cache_is_valid(CICP_HANDLE(ni), &ts->s.pkt) )) {
+  if(CI_LIKELY( ts->s.pkt.status == retrrc_success &&
+                oo_cp_verinfo_is_valid(ni->cplane, &ts->s.pkt.mac_integrity) )) {
 fast:
 #if CI_CFG_PORT_STRIPING
     if( ts->tcpflags & CI_TCPT_FLAG_STRIPE ) {
@@ -253,11 +251,24 @@ fast:
       ci_ip_tcp_list_to_dmaq(ni, ts, head_id, tail_pkt);
   }
   else {
-    if(CI_UNLIKELY( ts->tcpflags & CI_TCPT_FLAG_MSG_WARM )) {
-      cicp_user_retrieve(ni, &ts->s.pkt, &ts->s.cp);
-      return;
+    /* Update the ipcache first - ask for ARP as early as possible. */
+    int prev_mtu = ts->s.pkt.mtu;
+
+    cicp_user_retrieve(ni, &ts->s.pkt, &ts->s.cp);
+
+    if( ts->s.pkt.status == retrrc_success ) {
+      if( ts->s.pkt.mtu != prev_mtu )
+        CI_PMTU_TIMER_NOW(ni, &ts->pmtus);
     }
+
+    if(CI_UNLIKELY( ts->tcpflags & CI_TCPT_FLAG_MSG_WARM ))
+      return;
+
     do {
+      if( ts->s.pkt.status == retrrc_success &&
+          oo_cp_verinfo_is_valid(ni->cplane, &ts->s.pkt.mac_integrity) )
+        goto fast;
+
       pkt = PKT_CHK(ni, head_id);
       head_id = pkt->next;
 
@@ -268,8 +279,6 @@ fast:
       ci_ip_send_tcp_slow(ni, ts, pkt);
       if( pkt == tail_pkt )
         break;
-      if( cicp_ip_cache_is_valid(CICP_HANDLE(ni), &ts->s.pkt) )
-        goto fast;
     } while( 1 );
   }
 }
@@ -809,8 +818,6 @@ int ci_tcp_synrecv_send(ci_netif* netif, ci_tcp_socket_listen* tls,
   if( ipcache == NULL ) {
     ipcache = &ipcache_storage;
     ci_ip_send_pkt_lookup(netif, &tls->s.cp, pkt, ipcache);
-    if( (tsr->retries & CI_FLAG_TSR_RETRIES_MASK) > 0 )
-      cicp_ip_cache_mac_update(netif, ipcache, 0);
   }
 
   if( (tcp_flags & CI_TCP_FLAG_SYN) &&
@@ -830,7 +837,8 @@ int ci_tcp_synrecv_send(ci_netif* netif, ci_tcp_socket_listen* tls,
    */
 
   thdr->tcp_window_be16 = ci_tcp_rcvbuf2window(tls->s.so.rcvbuf,
-                                               tsr->amss, tsr->rcv_wscl);
+                                               tsr->amss, tsr->rcv_wscl) >>
+                          tsr->rcv_wscl;
   thdr->tcp_window_be16 = CI_BSWAP_BE16(thdr->tcp_window_be16);
 
   iphdr->ip_check_be16 = 0;
@@ -1034,11 +1042,6 @@ static int ci_tcp_retrans(ci_netif* ni, ci_tcp_state* ts, int seq_limit,
       return 1;
     }
 
-    /* We have to retransmit - so, something is wrong.
-     * Let's check if ARP is really valid. */
-    if( cicp_ip_cache_is_valid(CICP_HANDLE(ni), &ts->s.pkt) )
-      cicp_ip_cache_mac_update(ni, &ts->s.pkt, 0);
-
     pkt->flags |= CI_PKT_FLAG_RTQ_RETRANS;
     *seq_used += seq;
     seq_limit -= seq;
@@ -1220,8 +1223,21 @@ void ci_tcp_tx_advance(ci_tcp_state* ts, ci_netif* ni)
     }
 
     if( SEQ_GT(pkt->pf.tcp_tx.end_seq, ts->snd_max) ) {
-      ++ts->stats.tx_stop_rwnd;
-      break;
+#if CI_CFG_SPLIT_SEND_PACKETS_FOR_SMALL_RECEIVE_WINDOWS
+      /* Packet won't fit in the receive window.  We'd rather not
+       * split it - big packets are good for efficiency - so only do
+       * so if there is nothing else in flight.
+       */
+      if( ci_tcp_inflight(ts) ||
+          !SEQ_GT(ts->snd_max, pkt->pf.tcp_tx.start_seq) ||
+          ci_tcp_tx_split(ni, ts, sendq, pkt,
+                          SEQ_SUB(ts->snd_max, pkt->pf.tcp_tx.start_seq), 1) ){
+#endif
+        ++ts->stats.tx_stop_rwnd;
+        break;
+#if CI_CFG_SPLIT_SEND_PACKETS_FOR_SMALL_RECEIVE_WINDOWS
+      }
+#endif
     }
     if( SEQ_GT(pkt->pf.tcp_tx.end_seq, cwnd_right_edge) ) {
       ++ts->stats.tx_stop_cwnd;
@@ -1436,8 +1452,10 @@ void ci_tcp_tx_advance(ci_tcp_state* ts, ci_netif* ni)
 
 
 
-/* called to send an active reset on a connection (e.g. abort) */
-void ci_tcp_send_rst(ci_netif* netif, ci_tcp_state* ts)
+/* Most callers should use ci_tcp_send_rst(), to send a RST-ACK.  This function
+ * allows customisation of the flags for the exceptional cases. */
+void ci_tcp_send_rst_with_flags(ci_netif* netif, ci_tcp_state* ts,
+                                ci_uint8 extra_flags)
 {
   ci_ip_pkt_fmt* pkt;
   ci_tcp_hdr* tcp;
@@ -1456,7 +1474,7 @@ void ci_tcp_send_rst(ci_netif* netif, ci_tcp_state* ts)
 
   tcp = TX_PKT_TCP(pkt);
   tcp->tcp_urg_ptr_be16 = 0;
-  tcp->tcp_flags = CI_TCP_FLAG_RST | CI_TCP_FLAG_ACK;
+  tcp->tcp_flags = CI_TCP_FLAG_RST | extra_flags;
   tcp->tcp_seq_be32 = CI_BSWAP_BE32(tcp_snd_nxt(ts) + ts->snd_delegated);
   tcp->tcp_ack_be32 = CI_BSWAP_BE32(tcp_rcv_nxt(ts));
   tcp->tcp_window_be16 = 0;
@@ -1480,6 +1498,14 @@ void ci_tcp_send_rst(ci_netif* netif, ci_tcp_state* ts)
 
   CI_TCP_STATS_INC_OUT_RSTS( netif );
 }
+
+
+/* called to send an active reset on a connection (e.g. abort) */
+void ci_tcp_send_rst(ci_netif* netif, ci_tcp_state* ts)
+{
+  ci_tcp_send_rst_with_flags(netif, ts, CI_TCP_FLAG_ACK);
+}
+
 
 #ifdef __KERNEL__
 int ci_tcp_reset_untrusted(ci_netif *netif, ci_tcp_state *ts)
@@ -1528,7 +1554,8 @@ int ci_tcp_reset_untrusted(ci_netif *netif, ci_tcp_state *ts)
                CI_BSWAP_BE16(tcp->tcp_source_be16),
                CI_IP_PRINTF_ARGS(&ip->ip_daddr_be32),
                CI_BSWAP_BE16(tcp->tcp_dest_be16)));
-  rc = cicp_raw_ip_send(ip, ip_len, ts->s.cp.so_bindtodevice);
+  rc = cicp_raw_ip_send(cicppl_by_netif(netif), ip, ip_len,
+                        ts->s.cp.so_bindtodevice);
   ci_free(ip);
   return rc;
 }
@@ -1537,7 +1564,8 @@ int ci_tcp_reset_untrusted(ci_netif *netif, ci_tcp_state *ts)
 void ci_tcp_reply_with_rst(ci_netif* netif, ciip_tcp_rx_pkt* rxp)
 {
   /* If the incoming seg has an ACK, use that as the seq no, otherwise use
-  ** 0.  Calculate a proper ACK from the incoming seg.
+  ** 0.  Calculate a proper ACK from the incoming seg.  A consequence of this
+  ** is that this function is invalid for synchronised TCP states.
   */
   /*! ?? \TODO Check for dodgy source IP (to avoid broadcasting, for
   ** example).

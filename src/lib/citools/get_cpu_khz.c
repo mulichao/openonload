@@ -74,7 +74,7 @@ static int ci_measure_cpu_khz(unsigned* cpu_khz)
     ci_frc64(&tsc_e);
     gettimeofday(&tv_e, NULL);
     ci_frc64(&tsc_e2);
-    if( tsc_e2 < tsc_e ) {
+    if( tsc_e2 < tsc_e || timercmp(&tv_e, &tv_s, <) ) {
       skew = 1;
       break;
     }

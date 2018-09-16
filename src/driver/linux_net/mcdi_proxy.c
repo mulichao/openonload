@@ -15,7 +15,7 @@
 
 /****************************************************************************
  * Driver for Solarflare network controllers and boards
- * Copyright 2014-2015 Solarflare Communications Inc.
+ * Copyright 2014-2017 Solarflare Communications Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published
@@ -383,7 +383,8 @@ static void efx_mcdi_proxy_stopped(struct efx_nic *efx)
 			/* genlmsg_unicast frees the skb in the event of failure. */
 			return;
 		if(wait_event_timeout(efx_mcdi_proxy_ack_waitq, efq_mcdi_proxy_request_acked,
-				      EFX_MCDI_PROXY_ACK_TIMEOUT) > 0)
+				      EFX_MCDI_PROXY_ACK_TIMEOUT) > 0 ||
+		  efq_mcdi_proxy_request_acked)
 			return;
 	}
 	return;
@@ -502,7 +503,7 @@ static int efx_mcdi_proxy_do_proxy_action_req(struct sk_buff *skb,
 	}
 
 	rc = efx_mcdi_rpc_async(efx, *mcdi_cmd,
-		   nla_data(req), nla_len(req), *outlen,
+		   nla_data(req), nla_len(req),
 		   efx_mcdi_proxy_async_completer, *cookie);
 
 out1:
@@ -721,7 +722,8 @@ static int efx_mcdi_proxy_send_request(struct efx_nic *efx, u64 uhandle,
 		if (rc != 0)
 			return rc;
 		if(wait_event_timeout(efx_mcdi_proxy_ack_waitq, efq_mcdi_proxy_request_acked,
-				      EFX_MCDI_PROXY_ACK_TIMEOUT) > 0)
+				      EFX_MCDI_PROXY_ACK_TIMEOUT) > 0 ||
+		   efq_mcdi_proxy_request_acked)
 			return 0;
 	}
 	return -ETIMEDOUT;

@@ -311,11 +311,17 @@ void ci_udp_handle_rx(ci_netif* ni, ci_ip_pkt_fmt* pkt, ci_udp_hdr* udp,
   }
 
   if( state.delivered == 0 ) {
-    LOG_U( log(LPFOUT "handle_rx: NO MATCH %s:%u->%s:%u",
-               ip_addr_str(oo_ip_hdr(pkt)->ip_saddr_be32),
-               (unsigned) CI_BSWAP_BE16(udp->udp_source_be16),
-               ip_addr_str(oo_ip_hdr(pkt)->ip_daddr_be32),
-               (unsigned) CI_BSWAP_BE16(udp->udp_dest_be16)));
+    if( oo_tcpdump_check_no_match(ni, pkt, pkt->intf_i) )
+      oo_tcpdump_dump_pkt(ni, pkt);
+
+#ifndef NDEBUG
+    if( !NI_OPTS(ni).scalable_filter_enable )
+      LOG_U( log(LPFOUT "handle_rx: NO MATCH %s:%u->%s:%u",
+                 ip_addr_str(oo_ip_hdr(pkt)->ip_saddr_be32),
+                 (unsigned) CI_BSWAP_BE16(udp->udp_source_be16),
+                 ip_addr_str(oo_ip_hdr(pkt)->ip_daddr_be32),
+                 (unsigned) CI_BSWAP_BE16(udp->udp_dest_be16)));
+#endif
     CITP_STATS_NETIF_INC(ni, udp_rx_no_match_drops);
     if( ! CI_IP_IS_MULTICAST(oo_ip_hdr(pkt)->ip_daddr_be32) ) {
       CI_UDP_STATS_INC_NO_PORTS(ni);

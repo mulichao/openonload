@@ -43,7 +43,7 @@ extern "C" {
 #define FL_LOCK_SOCK		0x2       /* sock lock is needed    */
 #define FL_ARG_U                0x4       /* args: unsigned         */
 #define FL_ARG_X                0x8       /* args: unsigned hex     */
-#define FL_ARG_SU               0x10      /* args: string, unsigned */
+#define FL_ARG_SV               0x10      /* args: string, variant */
 #define FL_TCPA                 0x20      /* any TCP socket needed  */
 #define FL_TCPC                 0x40      /* TCP connection needed  */
 #define FL_UDP                  0x80      /* UDP socket needed      */
@@ -85,7 +85,7 @@ typedef struct {
 
 /* Arguments for ops are stored here. */
 extern unsigned    arg_u[1];
-extern const char* arg_s[1];
+extern const char* arg_s[2];
 
 typedef struct stack_op_s stack_op_t;
     

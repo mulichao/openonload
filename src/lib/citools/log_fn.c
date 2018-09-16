@@ -27,6 +27,7 @@
 /*! \cidoxg_lib_citools */
 #include "citools_internal.h"
 
+#include <syslog.h>
 
 # include <sys/uio.h>
 
@@ -54,6 +55,12 @@ void ci_log_stdout(const char* msg)
   v[1].iov_len = 1;
 
   writev(STDOUT_FILENO, v, 2);
+}
+
+
+void ci_log_syslog(const char* msg)
+{
+  syslog(LOG_INFO, "%s\n", msg);
 }
 
 

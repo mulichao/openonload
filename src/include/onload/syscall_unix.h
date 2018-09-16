@@ -40,6 +40,7 @@
 #include <sys/uio.h>
 #include <signal.h>
 
+#include "libc_compat.h"
 #include <ci/internal/transport_config_opt.h>
 
 

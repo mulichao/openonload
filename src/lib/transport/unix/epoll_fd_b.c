@@ -84,7 +84,7 @@ citp_epollb_postpone_syscall_pre(citp_epollb_fdi *epi,
       if( fd_fdi_using && fd == fd_fdi_using->fd )
         fd_fdi = fd_fdi_using;
       else {
-        fd_fdi = citp_fdtable_lookup_noprobe(fd);
+        fd_fdi = citp_fdtable_lookup_noprobe(fd, 0);
         if( fd_fdi_using )
           ci_assert_nequal(fd_fdi, fd_fdi_using);
       }

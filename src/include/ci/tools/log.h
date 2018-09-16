@@ -54,6 +54,10 @@
 # include <sys/select.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**********************************************************************
  * Logging.
  */
@@ -113,6 +117,18 @@ ci_inline void ci_log_nth(void) {
     ci_log_fn = __ci_log_nth;
   }
 }
+
+/* Message ratelimiting functions */
+extern void
+ci_rlvlog(int* limit, const char* fmt, va_list args) CI_HF;
+extern void
+ci_rllog(int* limit, const char* fmt, ...) CI_PRINTF_LIKE(2,3) CI_HF;
+
+#define CI_RLLOG(LIMIT, ...) do { \
+    static int rate_limit = LIMIT; \
+    ci_rllog(&rate_limit, __VA_ARGS__); \
+  } while(0)
+
 
 extern int  ci_log_level  CI_HV;
 
@@ -246,6 +262,10 @@ extern void ci_log_buffer_dump(void) CI_HF;
   (((x) & MSG_CONFIRM     ) ? "CONFIRM "     :"")
 
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* __CI_TOOLS_LOG_H__ */
 /*! \cidoxg_end */

@@ -1004,46 +1004,6 @@ efab_tcp_helper_os_sock_accept(ci_private_t* priv, void *arg)
 
 
 
-extern int efab_tcp_helper_connect_os_sock(ci_private_t *priv, void *arg)
-{
-  oo_tcp_sockaddr_with_len_t *op = arg;
-  ci_sock_cmn* s;
-  size_t addrlen;
-  int rc;
-  tcp_helper_endpoint_t *ep;
-  struct socket* sock;
-  struct sockaddr_storage k_address_buf;
-  struct sockaddr *k_address = (struct sockaddr *)&k_address_buf;
-
-  ci_assert (priv && op);
-  if (!CI_PRIV_TYPE_IS_ENDPOINT(priv->fd_type))
-    return -EINVAL;
-  ci_assert(priv->thr);
-
-  addrlen = op->addrlen;
-
-  /* Get at the OS socket backing the u/l socket for fd */
-  ep = efab_priv_to_ep(priv);
-  s = SP_TO_SOCK(&priv->thr->netif, ep->id);
-
-  sock = get_linux_socket(ep);
-  if( sock == NULL )
-    return -EINVAL;
-
-  rc = move_addr_to_kernel(CI_USER_PTR_GET(op->address), addrlen, k_address);
-  if (rc >=0) {
-    /* We should sync non-blocking state between UL socket and kernel
-     * socket. */
-    if ((s->b.sb_aflags & CI_SB_AFLAG_O_NONBLOCK))
-      sock->file->f_flags |= O_NONBLOCK;
-    rc = sock->ops->connect(sock, k_address, addrlen, sock->file->f_flags);
-  }
-  put_linux_socket(sock);
-
-  return rc;
-}
-
-
 int efab_tcp_helper_set_tcp_close_os_sock(tcp_helper_resource_t *thr,
                                           oo_sp sock_id)
 {

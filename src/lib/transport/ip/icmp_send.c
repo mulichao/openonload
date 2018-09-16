@@ -174,7 +174,7 @@ extern int __ci_icmp_send_error(ci_netif *ni,
   /* Bug1729, Bug1731: LAND attack sets source addr=dest addr, thus our "trust"
    * mentioned below is utterly misplaced ...
    */
-  if( cicp_user_is_local_addr(CICP_HANDLE(ni), &rx_ip->ip_saddr_be32) ) {
+  if( cicp_user_is_local_addr(ni->cplane, rx_ip->ip_saddr_be32) ) {
     char buf[32];
     if( rx_ip->ip_protocol == IPPROTO_TCP )
       strcpy(buf, "TCP packet");

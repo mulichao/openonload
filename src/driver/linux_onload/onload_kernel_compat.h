@@ -29,7 +29,7 @@
 #define current_fsgid() current->fsgid
 #endif
 
-#ifdef EFX_HAVE_KMEM_CACHE_S
+#ifdef EFRM_HAVE_KMEM_CACHE_S
 #define kmem_cache kmem_cache_s
 #endif
 
@@ -125,6 +125,12 @@ efrm_get_unused_fd_flags(unsigned flags)
 #else /* ! O_CLOEXEC */
 #define get_unused_fd_flags(flags) get_unused_fd()
 #endif
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#define ci_call_usermodehelper call_usermodehelper
+#else
+extern int
+ci_call_usermodehelper(char *path, char **argv, char **envp, int wait);
 #endif
 
 #endif /* __ONLOAD_KERNEL_COMPAT_H__ */

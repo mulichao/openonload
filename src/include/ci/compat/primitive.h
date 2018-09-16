@@ -71,6 +71,8 @@ typedef enum {
 } ci_boolean_t;
 
 
+typedef char                            ci_string256[256];
+
 /**********************************************************************
  * Some nice types you'd always assumed were standards.
  * (Really, they are SYSV "standards".)

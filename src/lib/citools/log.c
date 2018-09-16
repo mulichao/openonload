@@ -206,4 +206,23 @@ void ci_set_log_prefix(const char* prefix)
 }
 
 
+void ci_rlvlog(int* limit, const char* fmt, va_list args)
+{
+  if( *limit <= 0 )
+    return;
+  ci_vlog(fmt, args);
+  if( --(*limit) == 0 )
+    ci_log("... message limit reached");
+}
+
+void ci_rllog(int* limit, const char* fmt, ...)
+{
+  va_list args;
+
+  va_start(args, fmt);
+  ci_rlvlog(limit, fmt, args);
+  va_end(args);
+}
+
+
 /*! \cidoxg_end */

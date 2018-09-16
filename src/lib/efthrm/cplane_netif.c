@@ -45,8 +45,7 @@
 #include <onload/debug.h>
 #include <ci/internal/ip.h>
 #include <ci/internal/ip_log.h>
-#include <cplane/prot.h>
-#include <cplane/exported.h>
+#include <onload/cplane_prot.h>
 #include <ci/internal/transport_config_opt.h>
 #include <ci/tools/dllist.h>
 #include <ci/tools.h>

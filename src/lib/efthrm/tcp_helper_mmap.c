@@ -24,7 +24,6 @@
 
 /*! \cidoxg_driver_efab */
 #include <onload/debug.h>
-#include <cplane/exported.h>
 #include <onload/tcp_driver.h>
 #include <onload/cplane_ops.h>
 #include <onload/tcp_helper.h>

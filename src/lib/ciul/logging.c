@@ -84,7 +84,7 @@ static void __ef_log(const char* msg)
  * encroaching the red-zone (once we get into here, the next IRQ will trigger a
  * kernel panic, so it is effectively unusable)
  */
-inline size_t
+static inline size_t
 ef_stack_space_left (void) {
 #ifdef __x86_64__
   return 0x10000;  /* FIXME: how do I do this on x86-64?? */

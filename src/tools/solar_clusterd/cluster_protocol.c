@@ -181,7 +181,7 @@ static PyObject* vi_set_add_stream(PyObject* self, PyObject* args)
     return PyErr_SetFromErrno(PyExc_OSError);
   }
 
-  return Py_None;
+  Py_RETURN_NONE;
 }
 
 

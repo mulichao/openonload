@@ -15,7 +15,7 @@
 
 /****************************************************************************
  * Driver for Solarflare network controllers and boards
- * Copyright 2014-2015 Solarflare Communications Inc.
+ * Copyright 2014-2017 Solarflare Communications Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published
@@ -44,6 +44,7 @@ MODULE_PARM_DESC(vf_count, "Duplicate of the max_vfs parameter");
 #endif
 
 #ifdef CONFIG_SFC_SRIOV
+
 
 void efx_sriov_init_max_vfs(struct efx_nic *efx, unsigned int pf_index)
 {
@@ -145,5 +146,6 @@ int efx_sriov_set_vf_link_state(struct net_device *net_dev, int vf_i,
 	else
 		return -EOPNOTSUPP;
 }
+
 
 #endif

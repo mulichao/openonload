@@ -183,7 +183,7 @@ static void parse_options( int argc, char** argv, struct configuration* cfg )
     { "help", no_argument, 0, 'h' },
     { 0, no_argument, 0, 0 }
   };
-  char const* optstring = "tlipcnTh";
+  char const* optstring = "t:l:i:p:c:n:Th";
 
   /* Defaults */
   bzero(cfg, sizeof(struct configuration));

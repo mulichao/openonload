@@ -49,6 +49,7 @@ typedef struct {
   ci_uint16 sport_be16; /*< dest port of TCP/UDP IP PDU in ICMP reply data */
   ci_uint16 dport_be16; /*< src port of TCP/UDP IP PDU in ICMP reply data */
   ci_uint8  protocol;   /*< protocol of IP PDU in ICMP reply data */
+  ci_ifid_t ifindex;    /*< interface index we've got the ICMP message from */
 } efab_ipp_addr;
 
 #endif

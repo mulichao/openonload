@@ -17,12 +17,16 @@
 #define __ONLOAD_INTERNAL_H__
 
 #include <linux/init.h>
-#include <cplane/prot.h>
 
 
 extern int oo_driverlink_register(void);
 extern void oo_driverlink_unregister(void);
 
+#ifdef EFRM_HAVE_NF_NET_HOOK
+struct net;
+int oo_register_nfhook(struct net *net);
+void oo_unregister_nfhook(struct net *net);
+#endif
 
 extern int  ci_install_proc_entries(void);
 extern void ci_uninstall_proc_entries(void);
@@ -38,5 +42,8 @@ extern void onloadfs_fini(void);
 
 #include <onload/fd_private.h>
 void onload_priv_free(ci_private_t *priv);
+
+extern int cp_server_pids_open(struct inode *inode, struct file *file);
+extern int cp_proc_stats_open(struct inode *inode, struct file *file);
 
 #endif  /* __ONLOAD_INTERNAL_H__ */

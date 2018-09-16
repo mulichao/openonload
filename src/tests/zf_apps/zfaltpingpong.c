@@ -19,6 +19,7 @@
  *
  * This sample is based on the zftcppingpong sample.
  */
+#include <etherfabric/ef_vi.h> /* for struct ef_vi_transmit_alt_overhead */
 #include <zf/zf.h>
 #include "zf_utils.h"
 
@@ -194,6 +195,7 @@ int main(int argc, char* argv[])
       cfg.itercount = atoi(optarg);
       break;
     case '?':
+      usage_err();
       exit(1);
     default:
       ZF_TEST(0);
@@ -262,6 +264,14 @@ int main(int argc, char* argv[])
     ZF_TRY(zftl_free(listener));
   }
   printf("Connection established\n");
+
+  /* Verify that we have enough buffer space. */
+  struct ef_vi_transmit_alt_overhead overhead;
+  ZF_TRY( zf_alternatives_query_overhead_tcp(zock, &overhead) );
+  int pkt_bytes = ef_vi_transmit_alt_usage(&overhead, cfg.size);
+  int64_t buffer_space;
+  ZF_TRY( zf_attr_get_int(attr, "alt_buf_size", &buffer_space) );
+  ZF_TEST( pkt_bytes <= buffer_space );
 
   if( cfg.ping ) {
     double rtt;

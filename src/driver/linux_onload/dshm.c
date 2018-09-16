@@ -250,7 +250,7 @@ oo_dshm_free_handle_list(ci_dllist* list)
 
 
 
-#ifdef OO_MMAP_HAVE_EXTENDED_MAP_TYPES
+#ifdef OO_MMAP_TYPE_DSHM
 /* Maps a dshm segment into a process's address space. */
 int
 oo_dshm_mmap_impl(struct vm_area_struct* vma)
@@ -308,7 +308,7 @@ oo_dshm_mmap_impl(struct vm_area_struct* vma)
 
   return rc;
 }
-#endif /* defined(OO_MMAP_HAVE_EXTENDED_MAP_TYPES) */
+#endif /* defined(OO_MMAP_TYPE_DSHM) */
 
 
 void

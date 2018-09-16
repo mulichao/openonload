@@ -53,6 +53,7 @@
 #include <ci/efrm/vf_resource_private.h>
 #include <ci/efhw/ef10.h>
 #include <ci/efhw/nic.h>
+#include <ci/tools/utils.h>
 #include "efrm_internal.h"
 #include "bt_manager.h"
 #include "efrm_pd.h"

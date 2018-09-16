@@ -489,8 +489,9 @@ static void ci_tcp_inherit_options(ci_netif* ni, ci_sock_cmn* s,
   ts->s.so = s->so;
   ts->s.cp.so_bindtodevice = s->cp.so_bindtodevice;
   ts->s.cp.ip_ttl = s->cp.ip_ttl;
+  ts->s.cp.ip_tos = s->cp.ip_tos;
   ts->s.rx_bind2dev_ifindex = s->rx_bind2dev_ifindex;
-  ts->s.rx_bind2dev_base_ifindex = s->rx_bind2dev_base_ifindex;
+  ts->s.rx_bind2dev_hwports = s->rx_bind2dev_hwports;
   ts->s.rx_bind2dev_vlan = s->rx_bind2dev_vlan;
   ci_tcp_set_sndbuf(ni, ts);      /* eff_mss must be valid */
   ci_tcp_set_rcvbuf(ni, ts);      /* and amss, and rcv_wscl */
@@ -703,8 +704,6 @@ int ci_tcp_listenq_try_promote(ci_netif* netif, ci_tcp_socket_listen* tls,
     ts->tcpflags = 0;
     ts->tcpflags |= tsr->tcpopts.flags;
     ts->tcpflags |= CI_TCPT_FLAG_PASSIVE_OPENED;
-    if( NI_OPTS(netif).tcp_listen_replies_back )
-      ts->s.cp.so_bindtodevice = ipcache->ifindex;
     ts->outgoing_hdrs_len = sizeof(ci_ip4_hdr) + sizeof(ci_tcp_hdr);
     if( ts->tcpflags & CI_TCPT_FLAG_WSCL ) {
       ts->snd_wscl = tsr->tcpopts.wscl_shft;

@@ -73,6 +73,7 @@ struct efrm_nic {
 	struct list_head clients;
 	struct efrm_pd_owner_ids *owner_ids;
 	struct efrm_nic_per_vi *vis;
+        int max_vis;
 	struct efrm_nic_vi      nvi;
 	struct efrm_vi_allocator vi_allocators[EFRM_NIC_N_VI_ALLOCATORS];
 	unsigned falcon_wakeup_mask;

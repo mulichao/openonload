@@ -28,7 +28,6 @@
   
 #include "ip_internal.h"
 #include <onload/ul/per_thread.h>
-#include <cplane/debug.h> /* for __CDEBUG_DEFAULT__ */
 
 
 /* By default, log anything unexpected that happens. */

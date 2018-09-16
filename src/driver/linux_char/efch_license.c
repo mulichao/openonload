@@ -130,7 +130,7 @@ efch_v3_license_challenge(ci_resource_table_t* rt,
            EFRM_V3_LICENSE_CHALLENGE_MACADDR_LEN);
     *copy_out = 1;
   }
-  else {
+  else if( rc != -ENOENT ) {
     EFCH_ERR("%s: V3 Challenge response %d",
       __FUNCTION__, rc);
   }

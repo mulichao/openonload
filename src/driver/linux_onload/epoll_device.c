@@ -86,7 +86,7 @@ struct oo_epoll1_private {
 
   /* Poll table and workqueue, used in callback */
   poll_table pt;
-  wait_queue_t wait;
+  wait_queue_entry_t wait;
   wait_queue_head_t *whead;
 
   /* kernel epoll file */
@@ -467,6 +467,7 @@ static void oo_epoll2_wait(struct oo_epoll_private *priv,
   OO_EPOLL_FOR_EACH_STACK(priv, i, thr, ni) {
     ci_atomic32_dec(&ni->state->n_spinners);
     tcp_helper_request_wakeup(thr);
+    CITP_STATS_NETIF_INC(&thr->netif, muxer_primes);
   }
 
   /* Block */
@@ -631,8 +632,8 @@ static void oo_epoll1_set_shared_flag(struct oo_epoll1_private* priv, int set)
   } while( ci_cas32u_fail(&priv->sh->flag, tmp, new) );
 }
 
-static int oo_epoll1_callback(wait_queue_t *wait, unsigned mode, int sync,
-                              void *key)
+static int oo_epoll1_callback(wait_queue_entry_t *wait, unsigned mode,
+                              int sync, void *key)
 {
   struct oo_epoll1_private* priv = container_of(wait,
                                                 struct oo_epoll1_private,
@@ -795,6 +796,7 @@ static void oo_epoll_prime_all_stacks(struct oo_epoll_private* priv)
   
   OO_EPOLL_FOR_EACH_STACK(priv, i, thr, ni) {
     tcp_helper_request_wakeup(thr);
+    CITP_STATS_NETIF_INC(&thr->netif, muxer_primes);
   }
 }
 
@@ -826,7 +828,7 @@ static unsigned oo_epoll1_poll(struct file* filp, poll_table* wait)
 
 struct oo_epoll_poll_table {
   poll_table pt;
-  wait_queue_t wq[2];
+  wait_queue_entry_t wq[2];
   wait_queue_head_t* w[2];
   struct task_struct* task;
   struct file* filp;
@@ -848,7 +850,7 @@ static void oo_epoll1_block_on_callback(struct file* filp,
   add_wait_queue(w, &ept->wq[i]);
 }
 
-static inline int oo_epoll1_wake_home_callback(wait_queue_t* wait,
+static inline int oo_epoll1_wake_home_callback(wait_queue_entry_t* wait,
                                                unsigned mode, int sync,
                                                void* key)
 {
@@ -858,7 +860,7 @@ static inline int oo_epoll1_wake_home_callback(wait_queue_t* wait,
   ept->rc |= OO_EPOLL1_EVENT_ON_HOME;
   return wake_up_process(ept->task);
 }
-static inline int oo_epoll1_wake_other_callback(wait_queue_t* wait,
+static inline int oo_epoll1_wake_other_callback(wait_queue_entry_t* wait,
                                                 unsigned mode, int sync,
                                                 void* key)
 {
@@ -1300,17 +1302,6 @@ int __init oo_epoll_chrdev_ctor(void)
     major = rc;
   oo_epoll_major = major;
 
-#ifdef NEED_IOCTL32
-  {
-    /* Register 64 bit handler for 32 bit ioctls.  In 2.6.11 onwards, this
-     * uses the .compat_ioctl file op instead.
-     */
-    int ioc;
-    for( ioc = 0; ioc < OO_OP_END; ++ioc )
-      register_ioctl32_conversion(oo_epoll_operations[ioc].ioc_cmd, NULL);
-  }
-#endif
-
   return 0;
 }
 
@@ -1318,15 +1309,6 @@ void oo_epoll_chrdev_dtor(void)
 {
   if( oo_epoll_major )
     unregister_chrdev(oo_epoll_major, OO_EPOLL_DEV_NAME);
-
-#ifdef NEED_IOCTL32
-  {
-    /* unregister 64 bit handler for 32 bit ioctls */
-    int ioc;
-    for( ioc = 0; ioc < OO_OP_END; ++ioc )
-      unregister_ioctl32_conversion(oo_epoll_operations[ioc].ioc_cmd);
-  }
-#endif
 }
 
 #endif

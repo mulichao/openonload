@@ -172,7 +172,7 @@ static void parse_options( int argc, char** argv, struct configuration* cfg )
     { "max", required_argument, 0, 'n' },
     { 0, no_argument, 0, 0 }
   };
-  const char* optstring = "ipPn";
+  const char* optstring = "i:p:P:n:";
 
   /* Defaults */
   bzero(cfg, sizeof(struct configuration));

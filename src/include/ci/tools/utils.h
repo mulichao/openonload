@@ -217,5 +217,18 @@ ci_inline int ci_atomic_quick_dec_and_test(ci_atomic_t* a) {
 #endif
 
 
+/* gcc's builtin ffs implemntations and the kernel's __ffs implementations
+ * differ in their indexing of the bits, and in whether it's valid to call them
+ * with a zero argument.  ci_ffs64() follow's gcc's semantics. */
+#ifdef __KERNEL__
+static inline int ci_ffs64(ci_uint64 x)
+{
+  return x == 0 ? 0 : __ffs64(x) + 1;
+}
+#else
+# define ci_ffs64 __builtin_ffsll
+#endif
+
+
 #endif  /* __CI_TOOLS_UTILS_H__ */
 /*! \cidoxg_end */

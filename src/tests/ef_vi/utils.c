@@ -516,6 +516,19 @@ void get_ipaddr_of_intf(const char* intf, char** ipaddr_out)
 }
 
 
+/* Handles both vlan and non-vlan interfaces, set vlan negative to skip vlan */
+void get_ipaddr_of_vlan_intf(const char* intf, int vlan, char** ipaddr_out)
+{
+  char full_intf[NI_MAXHOST];
+  if ( vlan < 0 ) {
+    get_ipaddr_of_intf(intf, ipaddr_out);
+  }
+  else {
+    TRY(snprintf(full_intf, NI_MAXHOST, "%s.%d", intf, vlan));
+    get_ipaddr_of_intf(full_intf, ipaddr_out);
+  }
+}
+
 int my_getaddrinfo(const char* host, const char* port,
                           struct addrinfo**ai_out)
 {

@@ -62,6 +62,10 @@ typedef struct ci_private_s {
 
   /* List of dshm segments owned by this file. */
   ci_dllist             dshm_list;
+
+  /* Handle to the control plane.  This is only needed in the case where we
+   * don't have a stack. */
+  struct oo_cplane_handle* priv_cp;
 } ci_private_t;
 
 #endif  /* __CI_DRIVER_EFAB_FDPRIVATE_H__ */

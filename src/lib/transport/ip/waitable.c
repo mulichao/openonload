@@ -384,7 +384,7 @@ static void citp_waitable_dump2(ci_netif* ni, citp_waitable* w, const char* pf,
   if( w->spin_cycles == -1 )
     logger(log_arg, "%s  ul_poll: -1 spin cycles -1 usecs", pf);
   else
-    logger(log_arg, "%s  ul_poll: %llu spin cycles %u usec", pf,
+    logger(log_arg, "%s  ul_poll: %"CI_PRIu64" spin cycles %u usec", pf,
          w->spin_cycles, oo_cycles64_to_usec(ni, w->spin_cycles));
 }
 

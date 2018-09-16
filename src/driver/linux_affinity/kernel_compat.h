@@ -72,4 +72,8 @@ static inline void *PDE_DATA(const struct inode *inode)
 #define dev_get_by_index(net, ifindex) dev_get_by_index(ifindex)
 #endif
 
+#ifndef EFRM_HAVE_WAIT_QUEUE_ENTRY
+#define wait_queue_entry_t wait_queue_t
+#endif
+
 #endif

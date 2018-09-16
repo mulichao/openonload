@@ -68,7 +68,7 @@ static void usage(const char* msg)
 }
 
 
-#define MAX_PATHNAME 200
+#define MAX_PATHNAME 300
 #define MAX_CMDNAME 16
 #define MAX_CMDLINE 60
 

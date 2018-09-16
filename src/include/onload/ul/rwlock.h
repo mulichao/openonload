@@ -283,7 +283,7 @@ ci_inline void oo_rwlock_unlock_write(oo_rwlock* l)
   CI_TRY( pthread_mutex_unlock(&l->write_lock) );
 
   /* Decrement the writers counter and tell readers they can use the lock
-   * in needed */
+   * if needed */
   rwlock_writers_dec(l, 0);
 }
 

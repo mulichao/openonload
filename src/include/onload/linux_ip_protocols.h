@@ -44,7 +44,8 @@
  * ICMP, IGMP, UDP etc. delivery handler.  Called from the 
  * ARP keventd tasklet. */
 extern int 
-efab_handle_ipp_pkt_task(int thr_id, const void* ip_hdr, int len);
+efab_handle_ipp_pkt_task(int thr_id, ci_ifid_t ifindex,
+                         const void* ip_hdr, int len);
 
 /*! efab_ipp_icmp_parse -
  * Get the important info out of the ICMP hdr & it's payload

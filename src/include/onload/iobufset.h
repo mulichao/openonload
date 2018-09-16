@@ -88,6 +88,8 @@ struct oo_buffer_pages {
   oo_atomic_t ref_count;
 #ifdef OO_DO_HUGE_PAGES
   int shmid;
+  struct file* shm_map_file;
+  void (*close)(struct vm_area_struct*);
 #endif
   struct page **pages;     /*!< array of Linux compound pages */
 };

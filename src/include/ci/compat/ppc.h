@@ -66,7 +66,11 @@
 
 #define CI_CPU_HAS_IOSPACE 0 /* CPU has a separate IO space */
 
-#define CI_MAX_TIME_T 0x7fffffffffffffffLL
+#ifdef __PPC64__
+# define CI_MAX_TIME_T 0x7fffffffffffffffLL
+#else
+# define CI_MAX_TIME_T 0x7fffffffL
+#endif
 
 #endif  /* __CI_COMPAT_PPC_H__ */
 

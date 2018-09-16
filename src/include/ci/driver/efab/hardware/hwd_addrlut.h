@@ -21,6 +21,7 @@
 extern hwd_ifmapstblentry_t hwd_ifmaps[];
 
 typedef enum {
+   HWD_IFMAP_DPCPU,
    HWD_IFMAP_IOBAR,
    HWD_IFMAP_MCPU,
    HWD_IFMAP_MCPUCSRIND,

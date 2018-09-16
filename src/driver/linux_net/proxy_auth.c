@@ -15,7 +15,7 @@
 
 /****************************************************************************
  * Driver for Solarflare network controllers and boards
- * Copyright 2014-2015 Solarflare Communications Inc.
+ * Copyright 2014-2017 Solarflare Communications Inc.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 as published
@@ -229,6 +229,7 @@ static int efx_proxy_auth_mc_config(struct proxy_admin_state *pa)
 
 	memcpy(MCDI_PTR(inbuf, PROXY_CONFIGURE_IN_ALLOWED_MCDI_MASK),
 			pa->op_mask, sizeof(pa->op_mask));
+
 
 	rc = efx_mcdi_rpc(pa->efx, MC_CMD_PROXY_CONFIGURE,
 			inbuf, sizeof(inbuf), NULL, 0, NULL);
@@ -1013,7 +1014,7 @@ int efx_proxy_auth_complete_request(struct efx_nic *efx, u64 uhandle,
 	 * MC reboot).
 	 */
 	if (pa->state != PROXY_AUTH_ADMIN_READY) {
-		EFX_BUG_ON_PARANOID(pa->state != PROXY_AUTH_ADMIN_RESTARTING);
+		EFX_WARN_ON_PARANOID(pa->state != PROXY_AUTH_ADMIN_RESTARTING);
 		rc = -ESHUTDOWN;
 		goto out_unlock;
 	}

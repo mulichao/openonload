@@ -69,6 +69,7 @@ typedef struct ci_netif_nic_s {
 struct tcp_helper_endpoint_s;
 struct oof_cb_sw_filter_op;
 #endif
+struct oo_cplane_handle;
 
 /* Non-shared packet buffer set structures */
 #ifdef __KERNEL__
@@ -112,17 +113,19 @@ struct ci_netif_s {
 #endif
 
 #ifdef __ci_driver__
-  ci_int8              hwport_to_intf_i[CPLANE_MAX_REGISTER_INTERFACES];
+  cicp_hwport_mask_t   hwport_mask; /* hwports accelearted by the stack */
+  ci_int8              hwport_to_intf_i[CI_CFG_MAX_HWPORTS];
   ci_int8              intf_i_to_hwport[CI_CFG_MAX_INTERFACES];
-  uid_t                uid;
-  uid_t                euid;
+  /* These uid_t are in the kernel init namespace */
+  uid_t                kuid;
+  uid_t                keuid;
   ci_shmbuf_t          pages_buf;
 #endif
 
 
-#ifndef __KERNEL__
-  cicp_handle_t        *cplane;
+  struct oo_cplane_handle *cplane;
 
+#ifndef __KERNEL__
   /* Currently, we do not use timesync from the common code (i.e. from the
    * code which is compiled in both kernel and user space.
    * So, kernel code uses efab_tcp_driver.timesync,

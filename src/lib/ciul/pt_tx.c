@@ -58,6 +58,17 @@ int ef_vi_transmit_init(ef_vi* vi, ef_addr base, int len, ef_request_id dma_id)
 }
 
 
+void ef_vi_transmit_init_undo(ef_vi* vi)
+{
+  ef_vi_txq* q = &vi->vi_txq;
+  ef_vi_txq_state* qs = &vi->ep_state->txq;
+  while ( qs->added != qs->previous ) {
+    unsigned di = --qs->added & q->mask;
+    q->ids[di] = EF_REQUEST_ID_MASK;
+  }
+}
+
+
 int ef_vi_transmit_unbundle(ef_vi* vi, const ef_event* ev,
 			    ef_request_id* ids)
 {

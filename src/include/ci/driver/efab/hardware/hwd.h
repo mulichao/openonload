@@ -40,6 +40,7 @@
 #define HW_ACC_RSVD 10
 #define HW_ACC_ROZ 11
 #define HW_ACC_RW1C HW_ACC_RWC1
+#define HW_ACC_RCW HW_ACC_RWC
 #define HW_ACC_ROF 12
 
 #define HWD_ACC_MAX_ENTRIES 4

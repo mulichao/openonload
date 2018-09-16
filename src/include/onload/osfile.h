@@ -49,6 +49,7 @@ struct oo_file_ref {
 
 #ifdef __KERNEL__
 
+#  include <ci/driver/internal.h>
 #  define CI_OS_FILE_BAD ((struct file *)NULL)
    typedef struct file * ci_os_file;
 
@@ -119,7 +120,7 @@ extern void oo_file_ref_drop_list_now(struct oo_file_ref*);
 #if defined(__KERNEL__) && defined(__linux__)
 /* Used to poll OS socket for OS events. */
 struct oo_os_sock_poll {
-  wait_queue_t wait;
+  wait_queue_entry_t wait;
   struct file *file;
   spinlock_t lock;
 };

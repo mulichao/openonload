@@ -31,6 +31,8 @@
 #include <ci/internal/ip_log.h>
 #include <ci/internal/efabcfg.h>
 #include <onload/epoll.h>
+#include <onload/version.h>
+#include "uk_intf_ver.h"
 
 
 /*! Names of the devices to open.
@@ -57,10 +59,37 @@ static int fd_is_saved[OO_MAX_DEV];
 static unsigned long oo_st_rdev[OO_MAX_DEV];
 
 
+int oo_version_check_ul(ci_fd_t fd)
+{
+  int rc;
+  oo_version_check_t vc;
+  strncpy(vc.in_version, ONLOAD_VERSION, sizeof(vc.in_version));
+  strncpy(vc.in_uk_intf_ver, OO_UK_INTF_VER, sizeof(vc.in_uk_intf_ver));
+  vc.debug =
+#ifdef NDEBUG
+    0;
+#else
+    1;
+#endif
+  rc = ci_sys_ioctl(fd, OO_IOC_CHECK_VERSION, &vc);
+  if( rc == -1 )
+    return -errno;
+  return rc;
+}
+
+
 /* Please do not add any logging here (else citp_log_fn() could recurse) */
 ci_inline int oo_open(ci_fd_t* out, enum oo_device_type dev_type, int flags) {
   ci_fd_t fp  = ci_sys_open(oo_device_name[dev_type], O_RDWR | flags);
+  int rc;
   if( fp < 0 )  return -errno;
+  if( dev_type == OO_STACK_DEV ) {
+    rc = oo_version_check_ul(fp);
+    if( rc < 0 ) {
+      ci_sys_close(fp);
+      return rc;
+    }
+  }
   *out = fp;
   return 0;
 }

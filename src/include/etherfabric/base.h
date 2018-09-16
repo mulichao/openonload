@@ -41,8 +41,8 @@
 *//*! \file
 ** \author    Solarflare Communications, Inc.
 ** \brief     Base definitions for EtherFabric Virtual Interface HAL.
-** \date      2015/02/16
-** \copyright Copyright &copy; 2015 Solarflare Communications, Inc. All
+** \date      2017/02/21
+** \copyright Copyright &copy; 2017 Solarflare Communications, Inc. All
 **            rights reserved. Solarflare, OpenOnload and EnterpriseOnload
 **            are trademarks of Solarflare Communications, Inc.
 *//*

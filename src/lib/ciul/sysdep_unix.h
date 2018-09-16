@@ -196,4 +196,25 @@ ef_vi_inline void writel(uint32_t data, volatile void *addr)
 
 #define BUG_ON(exp)  assert(!(exp))
 
+
+
+#include <sys/stat.h>
+
+static inline int sys_is_numa_(void)
+{
+  struct stat s;
+  return stat("/sys/devices/system/node/node1", &s) == 0;
+}
+
+
+static inline int sys_is_numa(void)
+{
+  static int result;
+  if( ! result )
+    result = sys_is_numa_() + 1;
+  return result - 1;
+}
+
+
+
 #endif  /* __CI_CIUL_SYSDEP_UNIX_H__ */

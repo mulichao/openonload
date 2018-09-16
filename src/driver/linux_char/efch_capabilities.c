@@ -295,6 +295,16 @@ int efch_capabilities_op(struct efch_capabilities_in* in,
       out->val = nic->tx_alts_cp_bufs;
     break;
 
+  case EF_VI_CAP_RX_FW_VARIANT:
+    out->support_rc = 0;
+    out->val = nic->rx_variant;
+    break;
+
+  case EF_VI_CAP_TX_FW_VARIANT:
+    out->support_rc = 0;
+    out->val = nic->tx_variant;
+    break;
+
   default:
     out->support_rc = -ENOSYS;
     out->val = 0;
